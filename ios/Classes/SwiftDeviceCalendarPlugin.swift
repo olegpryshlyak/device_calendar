@@ -682,42 +682,6 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
         return ekRRuleString
     }
 
-    private func setAttendees(_ arguments: [String : AnyObject], _ ekEvent: EKEvent?) {
-        let attendeesArguments = arguments[attendeesArgument] as? [Dictionary<String, AnyObject>]
-        if attendeesArguments == nil {
-            return
-        }
-
-        var attendees = [EKParticipant]()
-        for attendeeArguments in attendeesArguments! {
-            let name = attendeeArguments[nameArgument] as! String
-            let emailAddress = attendeeArguments[emailAddressArgument] as! String
-            let role = attendeeArguments[roleArgument] as! Int
-
-            if (ekEvent!.attendees != nil) {
-                let existingAttendee = ekEvent!.attendees!.first { element in
-                    return element.emailAddress == emailAddress
-                }
-                if existingAttendee != nil && ekEvent!.organizer?.emailAddress != existingAttendee?.emailAddress{
-                    attendees.append(existingAttendee!)
-                    continue
-                }
-            }
-
-            let attendee = createParticipant(
-                name: name,
-                emailAddress: emailAddress,
-                role: role)
-
-            if (attendee == nil) {
-                continue
-            }
-
-            attendees.append(attendee!)
-        }
-
-        ekEvent!.setValue(attendees, forKey: "attendees")
-    }
 
     private func createReminders(_ arguments: [String : AnyObject]) -> [EKAlarm]?{
         let remindersArguments = arguments[remindersArgument] as? [Dictionary<String, AnyObject>]
@@ -862,7 +826,6 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
             }
 
             ekEvent!.recurrenceRules = createEKRecurrenceRules(arguments)
-            setAttendees(arguments, ekEvent)
             ekEvent!.alarms = createReminders(arguments)
 
             if let availability = setAvailability(arguments) {
