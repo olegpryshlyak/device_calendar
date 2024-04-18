@@ -1,3 +1,4 @@
+import 'package:device_calendar_example/add_event_page.dart';
 import 'package:flutter/material.dart';
 
 import 'common/app_routes.dart';
@@ -21,7 +22,7 @@ class _MyAppState extends State<MyApp> {
       darkTheme: ThemeData.dark(),
       routes: {
         AppRoutes.calendars: (context) {
-          return const CalendarsPage(key: Key('calendarsPage'));
+          return const AddEventPage();
         }
       },
     );

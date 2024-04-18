@@ -165,15 +165,15 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
         case requestPermissionsMethod:
-            requestPermissions(result)
+            requestPermissions(fullAccess: (call.arguments as? [String: Any])?["fullAccess"] as? Bool == true, result)
         case hasPermissionsMethod:
-            hasPermissions(result)
+            hasPermissions(fullAccess: (call.arguments as? [String: Any])?["fullAccess"] as? Bool == true, result)
         case retrieveCalendarsMethod:
             retrieveCalendars(result)
         case retrieveEventsMethod:
             retrieveEvents(call, result)
         case createOrUpdateEventMethod:
-            createOrUpdateEvent(call, result)
+            createOrUpdateEvent(fullAccess: (call.arguments as? [String: Any])?["fullAccess"] as? Bool == true, call, result)
         case deleteEventMethod:
             deleteEvent(call, result)
         case deleteEventInstanceMethod:
@@ -190,8 +190,8 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
         }
     }
 
-    private func hasPermissions(_ result: FlutterResult) {
-        let hasPermissions = hasEventPermissions()
+    private func hasPermissions(fullAccess: Bool, _ result: FlutterResult) {
+        let hasPermissions = hasEventPermissions(fullAccess: fullAccess)
         result(hasPermissions)
     }
 
@@ -246,7 +246,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     }
 
     private func retrieveCalendars(_ result: @escaping FlutterResult) {
-        checkPermissionsThenExecute(permissionsGrantedAction: {
+        checkPermissionsThenExecute(fullAccess: true, permissionsGrantedAction: {
             let ekCalendars = self.eventStore.calendars(for: .event)
             let defaultCalendar = self.eventStore.defaultCalendarForNewEvents
             var calendars = [DeviceCalendar]()
@@ -267,7 +267,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     }
 
     private func deleteCalendar(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-        checkPermissionsThenExecute(permissionsGrantedAction: {
+        checkPermissionsThenExecute(fullAccess: true, permissionsGrantedAction: {
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let calendarId = arguments[calendarIdArgument] as! String
 
@@ -312,7 +312,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     }
 
     private func retrieveEvents(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-        checkPermissionsThenExecute(permissionsGrantedAction: {
+        checkPermissionsThenExecute(fullAccess: true, permissionsGrantedAction: {
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let calendarId = arguments[calendarIdArgument] as! String
             let startDateMillisecondsSinceEpoch = arguments[startDateArgument] as? NSNumber
@@ -765,79 +765,132 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
         }
     }
 
-    private func createOrUpdateEvent(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-        checkPermissionsThenExecute(permissionsGrantedAction: {
-            let arguments = call.arguments as! Dictionary<String, AnyObject>
-            let calendarId = arguments[calendarIdArgument] as! String
-            let eventId = arguments[eventIdArgument] as? String
-            let isAllDay = arguments[eventAllDayArgument] as! Bool
-            let startDateMillisecondsSinceEpoch = arguments[eventStartDateArgument] as! NSNumber
-            let endDateDateMillisecondsSinceEpoch = arguments[eventEndDateArgument] as! NSNumber
-            let startDate = Date (timeIntervalSince1970: startDateMillisecondsSinceEpoch.doubleValue / 1000.0)
-            let endDate = Date (timeIntervalSince1970: endDateDateMillisecondsSinceEpoch.doubleValue / 1000.0)
-            let startTimeZoneString = arguments[eventStartTimeZoneArgument] as? String
-            let title = arguments[self.eventTitleArgument] as? String
-            let description = arguments[self.eventDescriptionArgument] as? String
-            let location = arguments[self.eventLocationArgument] as? String
-            let url = arguments[self.eventURLArgument] as? String
-            let ekCalendar = self.eventStore.calendar(withIdentifier: calendarId)
-            if (ekCalendar == nil) {
-                self.finishWithCalendarNotFoundError(result: result, calendarId: calendarId)
-                return
-            }
-
-            if !(ekCalendar!.allowsContentModifications) {
-                self.finishWithCalendarReadOnlyError(result: result, calendarId: calendarId)
-                return
-            }
-
-            var ekEvent: EKEvent?
-            if eventId == nil {
-                ekEvent = EKEvent.init(eventStore: self.eventStore)
-            } else {
-                ekEvent = self.eventStore.event(withIdentifier: eventId!)
-                if(ekEvent == nil) {
-                    self.finishWithEventNotFoundError(result: result, eventId: eventId!)
+    private func createOrUpdateEvent(fullAccess: Bool, _ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
+        checkPermissionsThenExecute(fullAccess: fullAccess, permissionsGrantedAction: {
+            if fullAccess {
+                let arguments = call.arguments as! Dictionary<String, AnyObject>
+                let calendarId = arguments[calendarIdArgument] as! String
+                let eventId = arguments[eventIdArgument] as? String
+                let isAllDay = arguments[eventAllDayArgument] as! Bool
+                let startDateMillisecondsSinceEpoch = arguments[eventStartDateArgument] as! NSNumber
+                let endDateDateMillisecondsSinceEpoch = arguments[eventEndDateArgument] as! NSNumber
+                let startDate = Date (timeIntervalSince1970: startDateMillisecondsSinceEpoch.doubleValue / 1000.0)
+                let endDate = Date (timeIntervalSince1970: endDateDateMillisecondsSinceEpoch.doubleValue / 1000.0)
+                let startTimeZoneString = arguments[eventStartTimeZoneArgument] as? String
+                let title = arguments[self.eventTitleArgument] as? String
+                let description = arguments[self.eventDescriptionArgument] as? String
+                let location = arguments[self.eventLocationArgument] as? String
+                let url = arguments[self.eventURLArgument] as? String
+                let ekCalendar = self.eventStore.calendar(withIdentifier: calendarId)
+                if (ekCalendar == nil) {
+                    self.finishWithCalendarNotFoundError(result: result, calendarId: calendarId)
                     return
                 }
-            }
-
-            ekEvent!.title = title ?? ""
-            ekEvent!.notes = description
-            ekEvent!.isAllDay = isAllDay
-            ekEvent!.startDate = startDate
-            ekEvent!.endDate = endDate
-
-            if (!isAllDay) {
-                let timeZone = TimeZone(identifier: startTimeZoneString ?? TimeZone.current.identifier) ?? .current
-                ekEvent!.timeZone = timeZone
-            }
-
-            ekEvent!.calendar = ekCalendar!
-            ekEvent!.location = location
-
-            // Create and add URL object only when if the input string is not empty or nil
-            if let urlCheck = url, !urlCheck.isEmpty {
-                let iosUrl = URL(string: url ?? "")
-                ekEvent!.url = iosUrl
-            }
-            else {
-                ekEvent!.url = nil
-            }
-
-            ekEvent!.recurrenceRules = createEKRecurrenceRules(arguments)
-            ekEvent!.alarms = createReminders(arguments)
-
-            if let availability = setAvailability(arguments) {
-                ekEvent!.availability = availability
-            }
-
-            do {
-                try self.eventStore.save(ekEvent!, span: .futureEvents)
-                result(ekEvent!.eventIdentifier)
-            } catch {
-                self.eventStore.reset()
-                result(FlutterError(code: self.genericError, message: error.localizedDescription, details: nil))
+                
+                if !(ekCalendar!.allowsContentModifications) {
+                    self.finishWithCalendarReadOnlyError(result: result, calendarId: calendarId)
+                    return
+                }
+                
+                var ekEvent: EKEvent?
+                if eventId == nil {
+                    ekEvent = EKEvent.init(eventStore: self.eventStore)
+                } else {
+                    ekEvent = self.eventStore.event(withIdentifier: eventId!)
+                    if(ekEvent == nil) {
+                        self.finishWithEventNotFoundError(result: result, eventId: eventId!)
+                        return
+                    }
+                }
+                
+                ekEvent!.title = title ?? ""
+                ekEvent!.notes = description
+                ekEvent!.isAllDay = isAllDay
+                ekEvent!.startDate = startDate
+                ekEvent!.endDate = endDate
+                
+                if (!isAllDay) {
+                    let timeZone = TimeZone(identifier: startTimeZoneString ?? TimeZone.current.identifier) ?? .current
+                    ekEvent!.timeZone = timeZone
+                }
+                
+                ekEvent!.calendar = ekCalendar!
+                ekEvent!.location = location
+                
+                // Create and add URL object only when if the input string is not empty or nil
+                if let urlCheck = url, !urlCheck.isEmpty {
+                    let iosUrl = URL(string: url ?? "")
+                    ekEvent!.url = iosUrl
+                }
+                else {
+                    ekEvent!.url = nil
+                }
+                
+                ekEvent!.recurrenceRules = createEKRecurrenceRules(arguments)
+                ekEvent!.alarms = createReminders(arguments)
+                
+                if let availability = setAvailability(arguments) {
+                    ekEvent!.availability = availability
+                }
+                
+                do {
+                    try self.eventStore.save(ekEvent!, span: .futureEvents)
+                    result(ekEvent!.eventIdentifier)
+                } catch {
+                    self.eventStore.reset()
+                    result(FlutterError(code: self.genericError, message: error.localizedDescription, details: nil))
+                }
+            } else {
+                let arguments = call.arguments as! Dictionary<String, AnyObject>
+                let isAllDay = arguments[eventAllDayArgument] as! Bool
+                let startDateMillisecondsSinceEpoch = arguments[eventStartDateArgument] as! NSNumber
+                let endDateDateMillisecondsSinceEpoch = arguments[eventEndDateArgument] as! NSNumber
+                let startDate = Date (timeIntervalSince1970: startDateMillisecondsSinceEpoch.doubleValue / 1000.0)
+                let endDate = Date (timeIntervalSince1970: endDateDateMillisecondsSinceEpoch.doubleValue / 1000.0)
+                let startTimeZoneString = arguments[eventStartTimeZoneArgument] as? String
+                let title = arguments[self.eventTitleArgument] as? String
+                let description = arguments[self.eventDescriptionArgument] as? String
+                let location = arguments[self.eventLocationArgument] as? String
+                let url = arguments[self.eventURLArgument] as? String
+                
+                let ekEvent = EKEvent(eventStore: self.eventStore)
+                
+                ekEvent.title = title ?? ""
+                ekEvent.notes = description
+                ekEvent.isAllDay = isAllDay
+                ekEvent.startDate = startDate
+                ekEvent.endDate = endDate
+                ekEvent.calendar = eventStore.defaultCalendarForNewEvents
+                
+                if (!isAllDay) {
+                    let timeZone = TimeZone(identifier: startTimeZoneString ?? TimeZone.current.identifier) ?? .current
+                    ekEvent.timeZone = timeZone
+                }
+                
+                ekEvent.location = location
+                
+                // Create and add URL object only when if the input string is not empty or nil
+                if let urlCheck = url, !urlCheck.isEmpty {
+                    let iosUrl = URL(string: url ?? "")
+                    ekEvent.url = iosUrl
+                } else {
+                    ekEvent.url = nil
+                }
+                
+                ekEvent.recurrenceRules = createEKRecurrenceRules(arguments)
+                ekEvent.alarms = createReminders(arguments)
+                
+                if let availability = setAvailability(arguments) {
+                    ekEvent.availability = availability
+                }
+                
+                do {
+                    try self.eventStore.save(ekEvent, span: .thisEvent)
+                    result(ekEvent.eventIdentifier)
+                } catch {
+                    self.eventStore.reset()
+                    result(FlutterError(code: self.genericError, message: error.localizedDescription, details: nil))
+                }
             }
         }, result: result)
     }
@@ -856,7 +909,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     }
 
     private func deleteEvent(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-        checkPermissionsThenExecute(permissionsGrantedAction: {
+        checkPermissionsThenExecute(fullAccess: true, permissionsGrantedAction: {
             let arguments = call.arguments as! Dictionary<String, AnyObject>
             let calendarId = arguments[calendarIdArgument] as! String
             let eventId = arguments[eventIdArgument] as! String
@@ -922,7 +975,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     }
 
     private func showEventModal(_ call: FlutterMethodCall, _ result: @escaping FlutterResult) {
-            checkPermissionsThenExecute(permissionsGrantedAction: {
+        checkPermissionsThenExecute(fullAccess: true, permissionsGrantedAction: {
                 let arguments = call.arguments as! Dictionary<String, AnyObject>
                 let eventId = arguments[eventIdArgument] as! String
                 let event = self.eventStore.event(withIdentifier: eventId)
@@ -1006,23 +1059,30 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
         }
     }
 
-    private func checkPermissionsThenExecute(permissionsGrantedAction: () -> Void, result: @escaping FlutterResult) {
-        if hasEventPermissions() {
+    private func checkPermissionsThenExecute(fullAccess: Bool, permissionsGrantedAction: () -> Void, result: @escaping FlutterResult) {
+        if hasEventPermissions(fullAccess: fullAccess) {
             permissionsGrantedAction()
             return
         }
         self.finishWithUnauthorizedError(result: result)
     }
 
-    private func requestPermissions(_ completion: @escaping (Bool) -> Void) {
-        if hasEventPermissions() {
+    private func requestPermissions(fullAccess: Bool, _ completion: @escaping (Bool) -> Void) {
+        if hasEventPermissions(fullAccess: fullAccess) {
             completion(true)
             return
         }
         if #available(iOS 17, *) {
-            eventStore.requestFullAccessToEvents {
-                (accessGranted: Bool, _: Error?) in
-                completion(accessGranted)
+            if fullAccess {
+                eventStore.requestFullAccessToEvents {
+                    (accessGranted: Bool, _: Error?) in
+                    completion(accessGranted)
+                }
+            } else {
+                eventStore.requestWriteOnlyAccessToEvents {
+                    (accessGranted: Bool, _: Error?) in
+                    completion(accessGranted)
+                }
             }
         } else {
             eventStore.requestAccess(to: .event, completion: {
@@ -1032,10 +1092,10 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
         }
     }
 
-    private func hasEventPermissions() -> Bool {
+    private func hasEventPermissions(fullAccess: Bool) -> Bool {
         let status = EKEventStore.authorizationStatus(for: .event)
         if #available(iOS 17, *) {
-            return status == EKAuthorizationStatus.fullAccess
+            return fullAccess ? status == .fullAccess : status == .writeOnly || status == .fullAccess
         } else {
             return status == EKAuthorizationStatus.authorized
         }

@@ -12,8 +12,8 @@ void main() {
   final log = <MethodCall>[];
 
   setUp(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (MethodCall methodCall) async {
       print('Calling channel method ${methodCall.method}');
       log.add(methodCall);
 
@@ -24,24 +24,24 @@ void main() {
   });
 
   test('HasPermissions_Returns_Successfully', () async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (MethodCall methodCall) async {
       return true;
     });
 
-    final result = await deviceCalendarPlugin.hasPermissions();
+    final result = await deviceCalendarPlugin.hasPermissions(true);
     expect(result.isSuccess, true);
     expect(result.errors, isEmpty);
     expect(result.data, true);
   });
 
   test('RequestPermissions_Returns_Successfully', () async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (MethodCall methodCall) async {
       return true;
     });
 
-    final result = await deviceCalendarPlugin.requestPermissions();
+    final result = await deviceCalendarPlugin.requestPermissions(true);
     expect(result.isSuccess, true);
     expect(result.errors, isEmpty);
     expect(result.data, true);
@@ -49,8 +49,8 @@ void main() {
 
   test('RetrieveCalendars_Returns_Successfully', () async {
     const fakeCalendarName = 'fakeCalendarName';
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (MethodCall methodCall) async {
       return '[{"id":"1","isReadOnly":false,"name":"$fakeCalendarName"}]';
     });
 
@@ -66,8 +66,7 @@ void main() {
     const String? calendarId = null;
     const params = RetrieveEventsParams();
 
-    final result =
-        await deviceCalendarPlugin.retrieveEvents(calendarId, params);
+    final result = await deviceCalendarPlugin.retrieveEvents(calendarId, params);
     expect(result.isSuccess, false);
     expect(result.errors.length, greaterThan(0));
     expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
@@ -99,10 +98,7 @@ void main() {
 
     await deviceCalendarPlugin.deleteEvent(calendarId, eventId);
     expect(log, <Matcher>[
-      isMethodCall('deleteEvent', arguments: <String, dynamic>{
-        'calendarId': calendarId,
-        'eventId': eventId
-      })
+      isMethodCall('deleteEvent', arguments: <String, dynamic>{'calendarId': calendarId, 'eventId': eventId})
     ]);
   });
 
@@ -110,7 +106,7 @@ void main() {
     const String? fakeCalendarId = null;
     final event = Event(fakeCalendarId);
 
-    final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
+    final result = await deviceCalendarPlugin.createOrUpdateEvent(event, true);
     expect(result!.isSuccess, false);
     expect(result.errors, isNotEmpty);
     expect(result.errors[0].errorCode, equals(ErrorCodes.invalidArguments));
@@ -118,8 +114,8 @@ void main() {
 
   test('CreateEvent_Returns_Successfully', () async {
     const fakeNewEventId = 'fakeNewEventId';
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (MethodCall methodCall) async {
       return fakeNewEventId;
     });
 
@@ -129,7 +125,7 @@ void main() {
     event.start = TZDateTime.now(local);
     event.end = event.start!.add(const Duration(hours: 1));
 
-    final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
+    final result = await deviceCalendarPlugin.createOrUpdateEvent(event, true);
     expect(result?.isSuccess, true);
     expect(result?.errors, isEmpty);
     expect(result?.data, isNotEmpty);
@@ -138,8 +134,8 @@ void main() {
 
   test('UpdateEvent_Returns_Successfully', () async {
     const fakeNewEventId = 'fakeNewEventId';
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (MethodCall methodCall) async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger.setMockMethodCallHandler(channel,
+        (MethodCall methodCall) async {
       final arguments = methodCall.arguments as Map<dynamic, dynamic>;
       if (!arguments.containsKey('eventId') || arguments['eventId'] == null) {
         return null;
@@ -155,7 +151,7 @@ void main() {
     event.start = TZDateTime.now(local);
     event.end = event.start!.add(const Duration(hours: 1));
 
-    final result = await deviceCalendarPlugin.createOrUpdateEvent(event);
+    final result = await deviceCalendarPlugin.createOrUpdateEvent(event, true);
     expect(result?.isSuccess, true);
     expect(result?.errors, isEmpty);
     expect(result?.data, isNotEmpty);
@@ -163,11 +159,8 @@ void main() {
   });
 
   test('Attendee_Serialises_Correctly', () async {
-    final attendee = Attendee(
-        name: 'Test Attendee',
-        emailAddress: 'test@t.com',
-        role: AttendeeRole.Required,
-        isOrganiser: true);
+    final attendee =
+        Attendee(name: 'Test Attendee', emailAddress: 'test@t.com', role: AttendeeRole.Required, isOrganiser: true);
     final stringAttendee = attendee.toJson();
     expect(stringAttendee, isNotNull);
     final newAttendee = Attendee.fromJson(stringAttendee);
@@ -181,27 +174,10 @@ void main() {
   });
 
   test('Event_Serializes_Correctly', () async {
-    final startTime = TZDateTime(
-        timeZoneDatabase.locations.entries.skip(20).first.value,
-        1980,
-        10,
-        1,
-        0,
-        0,
-        0);
-    final endTime = TZDateTime(
-        timeZoneDatabase.locations.entries.skip(21).first.value,
-        1980,
-        10,
-        2,
-        0,
-        0,
-        0);
-    final attendee = Attendee(
-        name: 'Test Attendee',
-        emailAddress: 'test@t.com',
-        role: AttendeeRole.Required,
-        isOrganiser: true);
+    final startTime = TZDateTime(timeZoneDatabase.locations.entries.skip(20).first.value, 1980, 10, 1, 0, 0, 0);
+    final endTime = TZDateTime(timeZoneDatabase.locations.entries.skip(21).first.value, 1980, 10, 2, 0, 0, 0);
+    final attendee =
+        Attendee(name: 'Test Attendee', emailAddress: 'test@t.com', role: AttendeeRole.Required, isOrganiser: true);
     final recurrence = RecurrenceRule(frequency: Frequency.daily);
     final reminder = Reminder(minutes: 10);
     var event = Event('calendarId',
@@ -225,18 +201,15 @@ void main() {
     expect(newEvent.calendarId, equals(event.calendarId));
     expect(newEvent.eventId, equals(event.eventId));
     expect(newEvent.title, equals(event.title));
-    expect(newEvent.start!.millisecondsSinceEpoch,
-        equals(event.start!.millisecondsSinceEpoch));
-    expect(newEvent.end!.millisecondsSinceEpoch,
-        equals(event.end!.millisecondsSinceEpoch));
+    expect(newEvent.start!.millisecondsSinceEpoch, equals(event.start!.millisecondsSinceEpoch));
+    expect(newEvent.end!.millisecondsSinceEpoch, equals(event.end!.millisecondsSinceEpoch));
     expect(newEvent.description, equals(event.description));
     expect(newEvent.url, equals(event.url));
     expect(newEvent.location, equals(event.location));
     expect(newEvent.attendees, isNotNull);
     expect(newEvent.attendees?.length, equals(1));
     expect(newEvent.recurrenceRule, isNotNull);
-    expect(newEvent.recurrenceRule?.frequency,
-        equals(event.recurrenceRule?.frequency));
+    expect(newEvent.recurrenceRule?.frequency, equals(event.recurrenceRule?.frequency));
     expect(newEvent.reminders, isNotNull);
     expect(newEvent.reminders?.length, equals(1));
     expect(newEvent.availability, equals(event.availability));
