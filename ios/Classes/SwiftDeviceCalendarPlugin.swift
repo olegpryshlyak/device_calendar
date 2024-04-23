@@ -105,6 +105,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     let eventStore = EKEventStore()
     let requestPermissionsMethod = "requestPermissions"
     let hasPermissionsMethod = "hasPermissions"
+    let permissionsPermanentlyDeniedMethod = "permissionsPermanentlyDenied"
     let retrieveCalendarsMethod = "retrieveCalendars"
     let retrieveEventsMethod = "retrieveEvents"
     let retrieveSourcesMethod = "retrieveSources"
@@ -168,6 +169,8 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
             requestPermissions(fullAccess: (call.arguments as? [String: Any])?["fullAccess"] as? Bool == true, result)
         case hasPermissionsMethod:
             hasPermissions(fullAccess: (call.arguments as? [String: Any])?["fullAccess"] as? Bool == true, result)
+        case permissionsPermanentlyDeniedMethod:
+            permissionsPermanentlyDenied(result)
         case retrieveCalendarsMethod:
             retrieveCalendars(result)
         case retrieveEventsMethod:
@@ -193,6 +196,11 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     private func hasPermissions(fullAccess: Bool, _ result: FlutterResult) {
         let hasPermissions = hasEventPermissions(fullAccess: fullAccess)
         result(hasPermissions)
+    }
+    
+    private func permissionsPermanentlyDenied(_ result: FlutterResult) {
+        let permissionsDenied = eventPermissionsPermanentlyDenied()
+        result(permissionsDenied)
     }
 
     private func getSource() -> EKSource? {
@@ -1099,6 +1107,11 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
         } else {
             return status == EKAuthorizationStatus.authorized
         }
+    }
+    
+    private func eventPermissionsPermanentlyDenied() -> Bool {
+        let status = EKEventStore.authorizationStatus(for: .event)
+        return status == .denied
     }
 }
 

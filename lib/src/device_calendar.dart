@@ -53,6 +53,12 @@ class DeviceCalendarPlugin {
     );
   }
 
+  Future<Result<bool>> permissionsPermanentlyDenied() async {
+    return _invokeChannelMethod(
+      ChannelConstants.methodPermissionsPermanentlyDenied,
+    );
+  }
+
   /// Retrieves all of the device defined calendars
   ///
   /// Returns a [Result] containing a list of device [Calendar]

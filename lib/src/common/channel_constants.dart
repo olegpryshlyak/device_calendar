@@ -3,6 +3,7 @@ class ChannelConstants {
 
   static const String methodNameRequestPermissions = 'requestPermissions';
   static const String methodNameHasPermissions = 'hasPermissions';
+  static const String methodPermissionsPermanentlyDenied = 'permissionsPermanentlyDenied';
   static const String methodNameRetrieveCalendars = 'retrieveCalendars';
   static const String methodNameRetrieveEvents = 'retrieveEvents';
   static const String methodNameDeleteEvent = 'deleteEvent';
