@@ -25,6 +25,7 @@ private const val DELETE_EVENT_INSTANCE_METHOD = "deleteEventInstance"
 private const val CREATE_OR_UPDATE_EVENT_METHOD = "createOrUpdateEvent"
 private const val CREATE_CALENDAR_METHOD = "createCalendar"
 private const val DELETE_CALENDAR_METHOD = "deleteCalendar"
+private const val PERMISSIONS_PERMANENTLY_DENIED_METHOD = "permissionsPermanentlyDenied";
 
 // Method arguments
 private const val CALENDAR_ID_ARGUMENT = "calendarId"
@@ -117,6 +118,9 @@ class DeviceCalendarPlugin : FlutterPlugin, MethodCallHandler, ActivityAware {
             }
             HAS_PERMISSIONS_METHOD -> {
                 _calendarDelegate.hasPermissions(result)
+            }
+            PERMISSIONS_PERMANENTLY_DENIED_METHOD -> {
+                _calendarDelegate.permissionsDenied(result)
             }
             RETRIEVE_CALENDARS_METHOD -> {
                 _calendarDelegate.retrieveCalendars(result)

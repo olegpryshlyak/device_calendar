@@ -154,6 +154,10 @@ class CalendarDelegate(binding: ActivityPluginBinding?, context: Context) :
         finishWithSuccess(arePermissionsGranted(), pendingChannelResult)
     }
 
+    fun permissionsDenied(pendingChannelResult: MethodChannel.Result) {
+        finishWithSuccess(arePermissionsDenied(), pendingChannelResult)
+    }
+
     @SuppressLint("MissingPermission")
     fun retrieveCalendars(pendingChannelResult: MethodChannel.Result) {
         if (arePermissionsGranted()) {
@@ -871,6 +875,16 @@ class CalendarDelegate(binding: ActivityPluginBinding?, context: Context) :
         }
 
         return true
+    }
+
+    private fun arePermissionsDenied(): Boolean {
+        if (atLeastAPI(23) && _binding != null) {
+            val writeCalendarPermissionGranted = _binding!!.activity.checkSelfPermission(Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_DENIED
+            val readCalendarPermissionGranted = _binding!!.activity.checkSelfPermission(Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_DENIED
+            return writeCalendarPermissionGranted || readCalendarPermissionGranted
+        }
+
+        return false
     }
 
     private fun requestPermissions(parameters: CalendarMethodsParametersCacheModel) {
