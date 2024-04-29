@@ -1103,7 +1103,7 @@ public class SwiftDeviceCalendarPlugin: NSObject, FlutterPlugin, EKEventViewDele
     private func hasEventPermissions(fullAccess: Bool) -> Bool {
         let status = EKEventStore.authorizationStatus(for: .event)
         if #available(iOS 17, *) {
-            return fullAccess ? status == .fullAccess : status == .writeOnly || status == .fullAccess
+            return fullAccess ? status == .fullAccess : status == .writeOnly
         } else {
             return status == EKAuthorizationStatus.authorized
         }
